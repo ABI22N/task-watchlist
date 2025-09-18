@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Movie_Watchlist</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        body {
+            background-color: #f5f0ff;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+        }
+
+        .badge-watched {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .badge-unwatched {
+            background-color: #fd7e14;
+            color: white;
+        }
+
+        @media (max-width: 576px) {
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .action-buttons button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container my-5">
+        <h2 class="text-center mb-4">Movie 🎬 Watchlist</h2>
+
+        <form id="movie-form" class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+                <input type="text" id="movie-title" class="form-control" placeholder="Title" required />
+            </div>
+            <div class="col-12 col-md-3">
+                <input type="text" id="movie-genre" class="form-control" placeholder="Genre" required />
+            </div>
+            <div class="col-12 col-md-2">
+                <input type="number" id="movie-year" class="form-control" placeholder="Year" required />
+            </div>
+            <div class="col-12 col-md-2">
+                <select id="movie-status" class="form-select" required>
+                    <option value="Unwatched">Unwatched</option>
+                    <option value="Watched">Watched</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-1 d-grid">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </div>
+    
+        <div class="table-responsive">
+            <table class="table table-bordered bg-white">
+                <thead class="table-light">
+                    <tr>
+                        <th>Si.no</th>
+                        <th>Title</th>
+                        <th>Genre</th>
+                        <th>Year</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="movie-table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const form = document.getElementById('movie-form');
+        const movieTable = document.getElementById('movie-table');
+
+        let movies = JSON.parse(localStorage.getItem('movies')) || [];
+
+        function saveToLocalStorage() {
+            localStorage.setItem('movies', JSON.stringify(movies));
+        }
+
+        function renderTable() {
+            movieTable.innerHTML = '';
+
+            movies.forEach((movie, index) => {
+                if (movie.editing)
+                {
+                    movieTable.innerHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td><input type="text" id="edit-title-${index}" class="form-control form-control-sm" value="${movie.title}" /></td>
+                            <td><input type="text" id="edit-genre-${index}" class="form-control form-control-sm" value="${movie.genre}" /></td>
+                            <td><input type="number" id="edit-year-${index}" class="form-control form-control-sm" value="${movie.year}" /></td>
+                            <td>
+                                <select class="form-select form-select-sm" id="edit-status-${index}">
+                                    <option value="Watched" ${movie.status === 'Watched' ? 'selected' : ''}>Watched</option>
+                                    <option value="Unwatched" ${movie.status === 'Unwatched' ? 'selected' : ''}>Unwatched</option>
+                                </select>
+                            </td>
+                            <td class="action-buttons">
+                                <button class="btn btn-sm btn-success" onclick="saveEdit(${index})">💾 Save</button>
+                                <button class="btn btn-sm btn-secondary" onclick="cancelEdit(${index})">❌ Cancel</button>
+                            </td>
+                        </tr>
+                    `;
+                } else
+                 {
+                    movieTable.innerHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${movie.title}</td>
+                            <td>${movie.genre}</td>
+                            <td>${movie.year}</td>
+                            <td>
+                                <span class="badge ${movie.status === 'Watched' ? 'badge-watched' : 'badge-unwatched'}">
+                                    ${movie.status}
+                                </span>
+                            </td>
+                            <td class="action-buttons">
+                                <button class="btn btn-sm btn-warning" onclick="editMovie(${index})">✏️ Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteMovie(${index})">🗑️ Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const title = document.getElementById('movie-title').value.trim();
+            const genre = document.getElementById('movie-genre').value.trim();
+            const year = document.getElementById('movie-year').value.trim();
+            const status = document.getElementById('movie-status').value;
+
+            movies.push({ title, genre, year, status, editing: false });
+            saveToLocalStorage();
+            form.reset();
+            renderTable();
+        });
+
+        window.deleteMovie = function (index) {
+            movies.splice(index, 1);
+            saveToLocalStorage();
+            renderTable();
+        };
+
+        window.editMovie = function (index) {
+            movies[index].editing = true;
+            renderTable();
+        };
+
+        window.cancelEdit = function (index) {
+            movies[index].editing = false;
+            renderTable();
+        };
+
+        window.saveEdit = function (index) {
+            const newTitle = document.getElementById(`edit-title-${index}`).value.trim();
+            const newGenre = document.getElementById(`edit-genre-${index}`).value.trim();
+            const newYear = document.getElementById(`edit-year-${index}`).value.trim();
+            const newStatus = document.getElementById(`edit-status-${index}`).value;
+
+            movies[index] = {
+                title: newTitle,
+                genre: newGenre,
+                year: newYear,
+                status: newStatus,
+                editing: false
+            };
+
+            saveToLocalStorage();
+            renderTable();
+        };
+
+        renderTable();
+    </script>
+</body>
+
+</html>
